@@ -171,11 +171,18 @@ FALSE       "f"(?i:"alse")
 }
 
 <STRING>{
-    "\""        { *string_buf_ptr = '\0';
-                  // printf("String size: %d\n", string_buf_ptr - string_buf); 
-                  cool_yylval.symbol = stringtable.add_string(string_buf, string_buf_ptr - string_buf);
-                  BEGIN(INITIAL); 
-                  return STR_CONST; 
+    "\""        { 
+                    if(string_buf_ptr - string_buf == MAX_STR_CONST){
+                        cool_yylval.error_msg="String constant too long";
+                        BEGIN(ENDSTRING);
+                        return ERROR;
+                    }else{ 
+                        *string_buf_ptr = '\0';
+                        // printf("String size: %d\n", string_buf_ptr - string_buf); 
+                        cool_yylval.symbol = stringtable.add_string(string_buf, string_buf_ptr - string_buf);
+                        BEGIN(INITIAL); 
+                        return STR_CONST; 
+                    }
                 }
     <<EOF>>     { cool_yylval.error_msg="EOF in string"; 
                   BEGIN(INITIAL);
@@ -186,7 +193,8 @@ FALSE       "f"(?i:"alse")
                         BEGIN(ENDSTRING);
                         return ERROR;
                   }else{ 
-                        *string_buf_ptr++ = '"'; 
+                        *string_buf_ptr = '"'; 
+                        string_buf_ptr++; 
                   }
                 }
     "\\t"       { if(string_buf_ptr - string_buf == MAX_STR_CONST){
@@ -194,7 +202,8 @@ FALSE       "f"(?i:"alse")
                         BEGIN(ENDSTRING);
                         return ERROR;
                   }else{ 
-                        *string_buf_ptr++ = '\t'; 
+                        *string_buf_ptr = '\t'; 
+                        string_buf_ptr++; 
                   }
                 }
     "\\f"       { if(string_buf_ptr - string_buf == MAX_STR_CONST){
@@ -202,7 +211,8 @@ FALSE       "f"(?i:"alse")
                         BEGIN(ENDSTRING);
                         return ERROR;
                   }else{ 
-                        *string_buf_ptr++ = '\f'; 
+                        *string_buf_ptr = '\f'; 
+                        string_buf_ptr++; 
                   }
                 }
     "\\b"       { if(string_buf_ptr - string_buf == MAX_STR_CONST){
@@ -210,7 +220,17 @@ FALSE       "f"(?i:"alse")
                         BEGIN(ENDSTRING);
                         return ERROR;
                   }else{ 
-                        *string_buf_ptr++ = '\b'; 
+                        *string_buf_ptr = '\b'; 
+                        string_buf_ptr++; 
+                  }
+                }
+    "\\r"       { if(string_buf_ptr - string_buf == MAX_STR_CONST){
+                        cool_yylval.error_msg="String constant too long";
+                        BEGIN(ENDSTRING);
+                        return ERROR;
+                  }else{ 
+                        *string_buf_ptr = '\r'; 
+                        string_buf_ptr++; 
                   }
                 }
     "\\n"       { if(string_buf_ptr - string_buf == MAX_STR_CONST){
@@ -218,8 +238,9 @@ FALSE       "f"(?i:"alse")
                         BEGIN(ENDSTRING);
                         return ERROR;
                   }else{
-                        curr_lineno++; 
-                        *string_buf_ptr++ = '\n'; 
+                        curr_lineno++;
+                        *string_buf_ptr = '\n'; 
+                        string_buf_ptr++; 
                   }
                 }
     "\\0"       { if(string_buf_ptr - string_buf == MAX_STR_CONST){
@@ -227,7 +248,8 @@ FALSE       "f"(?i:"alse")
                         BEGIN(ENDSTRING);
                         return ERROR;
                   }else{ 
-                        *string_buf_ptr++ = '0'; 
+                        *string_buf_ptr = '0'; 
+                        string_buf_ptr++; 
                   }
                 }
     "\\\n"      {
@@ -237,7 +259,8 @@ FALSE       "f"(?i:"alse")
                         return ERROR;
                     }else{
                         curr_lineno++; 
-                        *string_buf_ptr++ = '\n'; 
+                        *string_buf_ptr = '\n';
+                        string_buf_ptr++; 
                     }
                 }
     \n          { 
@@ -252,12 +275,18 @@ FALSE       "f"(?i:"alse")
                      BEGIN(ENDSTRING);
                      return ERROR;
                 }
+    "\\\0"        {
+                     cool_yylval.error_msg="String contains escaped null character.";
+                     BEGIN(ENDSTRING);
+                     return ERROR;
+                }
     "\\".       { if(string_buf_ptr - string_buf == MAX_STR_CONST){
                         cool_yylval.error_msg="String constant too long";
                         BEGIN(ENDSTRING);
                         return ERROR;
                   }else{ 
-                        *string_buf_ptr++ = yytext[1]; 
+                        *string_buf_ptr = yytext[1]; 
+                        string_buf_ptr++; 
                   }
                 }
     .           {
@@ -274,7 +303,7 @@ FALSE       "f"(?i:"alse")
 
 <ENDSTRING>{
     "\""    {BEGIN(INITIAL);}
-    \n      {curr_lineno++; BEGIN(INITIAL);}
+    \n      {BEGIN(INITIAL);}
     .       {;}
 }
 
