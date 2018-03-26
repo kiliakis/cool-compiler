@@ -1359,7 +1359,7 @@ case 42:
 YY_RULE_SETUP
 #line 132 "cool.flex"
 {
-    cool_yylval.symbol = inttable.add_int(atoi(yytext));
+    cool_yylval.symbol = inttable.add_string(yytext);
     return INT_CONST;
 }
 	YY_BREAK

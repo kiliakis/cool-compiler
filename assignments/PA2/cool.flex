@@ -130,7 +130,7 @@ FALSE       "f"(?i:"alse")
 }
 
 {INTEGER}   {
-    cool_yylval.symbol = inttable.add_int(atoi(yytext));
+    cool_yylval.symbol = inttable.add_string(yytext);
     return INT_CONST;
 }
 
@@ -221,15 +221,6 @@ FALSE       "f"(?i:"alse")
                         return ERROR;
                   }else{ 
                         *string_buf_ptr = '\b'; 
-                        string_buf_ptr++; 
-                  }
-                }
-    "\\r"       { if(string_buf_ptr - string_buf == MAX_STR_CONST){
-                        cool_yylval.error_msg="String constant too long";
-                        BEGIN(ENDSTRING);
-                        return ERROR;
-                  }else{ 
-                        *string_buf_ptr = '\r'; 
                         string_buf_ptr++; 
                   }
                 }
