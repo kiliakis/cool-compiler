@@ -184,7 +184,7 @@ FALSE       "f"(?i:"alse")
                         return STR_CONST; 
                     }
                 }
-    <<EOF>>     { cool_yylval.error_msg="EOF in string"; 
+    <<EOF>>     { cool_yylval.error_msg="EOF in string constant"; 
                   BEGIN(INITIAL);
                   return ERROR;
                 }
@@ -229,7 +229,7 @@ FALSE       "f"(?i:"alse")
                         BEGIN(ENDSTRING);
                         return ERROR;
                   }else{
-                        curr_lineno++;
+                        // curr_lineno++;
                         *string_buf_ptr = '\n'; 
                         string_buf_ptr++; 
                   }
@@ -262,7 +262,7 @@ FALSE       "f"(?i:"alse")
 
                 }
     \0        {
-                     cool_yylval.error_msg="String contains null character";
+                     cool_yylval.error_msg="String contains null character.";
                      BEGIN(ENDSTRING);
                      return ERROR;
                 }
@@ -293,9 +293,10 @@ FALSE       "f"(?i:"alse")
 }
 
 <ENDSTRING>{
-    "\""    {BEGIN(INITIAL);}
-    \n      {BEGIN(INITIAL);}
-    .       {;}
+    "\""        {BEGIN(INITIAL);}
+    "\\\n"      {curr_lineno++; BEGIN(INITIAL);}
+    \n          {curr_lineno++; BEGIN(INITIAL);}
+    .           ;
 }
 
 .  {
