@@ -5,8 +5,9 @@
 World"
 "Hello
 World"
--123
-123
+a <- 123
+c=-12
+b = -1
 A_345
 "A_345" -- a line comment
 B_42
@@ -19,3 +20,5 @@ CLASS class CLass
 true 
 fALSe
 a = 1
+
+out_string("\vTo add a number to ");

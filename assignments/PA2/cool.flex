@@ -53,8 +53,10 @@ int comment_nest = 0;
 
 %}
 
+ASSIGN      <-
 DARROW      =>
-INTEGER     [\+\-]?[0-9]+
+LE          <=
+INTEGER     [0-9]+
 TYPEID      [A-Z][A-Za-z0-9_]*
 OBJID       [a-z][A-Za-z0-9_]*
 ID          [A-Za-z0-9_]*
@@ -88,19 +90,18 @@ FALSE       "f"(?i:"alse")
 (?i:"POOL")       { return POOL;}
 (?i:"THEN")       { return THEN;}
 (?i:"WHILE")      { return WHILE;}
-(?i:"ASSIGN")     { return ASSIGN;}
 (?i:"CASE")       { return CASE;}
 (?i:"ESAC")       { return ESAC;}
 (?i:"OF")         { return OF;}
 (?i:"NEW")        { return NEW;}
-(?i:"ERROR")      { return ERROR;}
-(?i:"LE")         { return LE;}
 (?i:"NOT")        { return NOT;}
 (?i:"ISVOID")     { return ISVOID;}
-{DARROW}     { return DARROW;}
+{LE}              { return LE;}
+{ASSIGN}          { return ASSIGN;}
+{DARROW}          { return DARROW;}
 "+"     { return '+';}
 "/"     { return '/';}
-"-"     { return '-';}
+"-"     { return '-';} 
 "*"     { return '*';}
 "="     { return '=';}
 "<"     { return '<';}
@@ -127,7 +128,6 @@ FALSE       "f"(?i:"alse")
                     cool_yylval.boolean = false;
                     return BOOL_CONST;
 }
-
 
 {INTEGER}   {
     cool_yylval.symbol = inttable.add_int(atoi(yytext));
@@ -165,7 +165,8 @@ FALSE       "f"(?i:"alse")
 }
 
 
-"\""            { string_buf_ptr = string_buf;
+"\""            { 
+                  string_buf_ptr = string_buf;
                   BEGIN(STRING);
 }
 
@@ -180,15 +181,64 @@ FALSE       "f"(?i:"alse")
                   BEGIN(INITIAL);
                   return ERROR;
                 }
-    '\0'        {
-                     cool_yylval.error_msg="String contains null character";
-                     BEGIN(ENDSTRING);
-                     return ERROR;
+    "\\\""       { if(string_buf_ptr - string_buf == MAX_STR_CONST){
+                        cool_yylval.error_msg="String constant too long";
+                        BEGIN(ENDSTRING);
+                        return ERROR;
+                  }else{ 
+                        *string_buf_ptr++ = '"'; 
+                  }
+                }
+    "\\t"       { if(string_buf_ptr - string_buf == MAX_STR_CONST){
+                        cool_yylval.error_msg="String constant too long";
+                        BEGIN(ENDSTRING);
+                        return ERROR;
+                  }else{ 
+                        *string_buf_ptr++ = '\t'; 
+                  }
+                }
+    "\\f"       { if(string_buf_ptr - string_buf == MAX_STR_CONST){
+                        cool_yylval.error_msg="String constant too long";
+                        BEGIN(ENDSTRING);
+                        return ERROR;
+                  }else{ 
+                        *string_buf_ptr++ = '\f'; 
+                  }
+                }
+    "\\b"       { if(string_buf_ptr - string_buf == MAX_STR_CONST){
+                        cool_yylval.error_msg="String constant too long";
+                        BEGIN(ENDSTRING);
+                        return ERROR;
+                  }else{ 
+                        *string_buf_ptr++ = '\b'; 
+                  }
+                }
+    "\\n"       { if(string_buf_ptr - string_buf == MAX_STR_CONST){
+                        cool_yylval.error_msg="String constant too long";
+                        BEGIN(ENDSTRING);
+                        return ERROR;
+                  }else{
+                        curr_lineno++; 
+                        *string_buf_ptr++ = '\n'; 
+                  }
+                }
+    "\\0"       { if(string_buf_ptr - string_buf == MAX_STR_CONST){
+                        cool_yylval.error_msg="String constant too long";
+                        BEGIN(ENDSTRING);
+                        return ERROR;
+                  }else{ 
+                        *string_buf_ptr++ = '0'; 
+                  }
                 }
     "\\\n"      {
-                    curr_lineno++;
-                    *string_buf_ptr = '\n';
-                    string_buf_ptr++;
+                    if(string_buf_ptr - string_buf == MAX_STR_CONST){
+                        cool_yylval.error_msg="String constant too long";
+                        BEGIN(ENDSTRING);
+                        return ERROR;
+                    }else{
+                        curr_lineno++; 
+                        *string_buf_ptr++ = '\n'; 
+                    }
                 }
     \n          { 
                   curr_lineno++;
@@ -196,6 +246,19 @@ FALSE       "f"(?i:"alse")
                   BEGIN(INITIAL);
                   return ERROR;
 
+                }
+    \0        {
+                     cool_yylval.error_msg="String contains null character";
+                     BEGIN(ENDSTRING);
+                     return ERROR;
+                }
+    "\\".       { if(string_buf_ptr - string_buf == MAX_STR_CONST){
+                        cool_yylval.error_msg="String constant too long";
+                        BEGIN(ENDSTRING);
+                        return ERROR;
+                  }else{ 
+                        *string_buf_ptr++ = yytext[1]; 
+                  }
                 }
     .           {
                   if(string_buf_ptr - string_buf == MAX_STR_CONST){
