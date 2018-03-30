@@ -134,10 +134,28 @@
     %type <classes> class_list
     %type <class_> class
     
+    // %type <symbol> symbol
+    // %type <boolean> boolean
+    %type <case_> case
+    %type <cases> case_list
+    %type <expression> expr
+    %type <expressions> expr_list
+ 
     /* You will want to change the following line. */
-    %type <features> dummy_feature_list
-    
+    %type <features> feature_list
+    %type <feature> feature
+
     /* Precedence declarations go here. */
+    
+    %right ASSIGN
+    %left NOT
+    %left '<' '=' LE 
+    %left '+' '-'
+    %left '*' '/'
+    %left ISVOID
+    %left '~'
+    %left '@'
+    %left '.'
     
     
     %%
@@ -157,17 +175,75 @@
     ;
     
     /* If no parent is specified, the class inherits from the Object class. */
-    class	: CLASS TYPEID '{' dummy_feature_list '}' ';'
+    class	: CLASS TYPEID '{' feature_list '}' ';'
     { $$ = class_($2,idtable.add_string("Object"),$4,
     stringtable.add_string(curr_filename)); }
-    | CLASS TYPEID INHERITS TYPEID '{' dummy_feature_list '}' ';'
+    | CLASS TYPEID INHERITS TYPEID '{' feature_list '}' ';'
     { $$ = class_($2,$4,$6,stringtable.add_string(curr_filename)); }
     ;
     
     /* Feature list may be empty, but no empty features in list. */
-    dummy_feature_list:		/* empty */
+    feature_list:		/* empty */
     {  $$ = nil_Features(); }
+    | feature_list feature 
+    ;
     
+    feature : OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}'
+    | OBJECTID ':' TYPEID
+    | OBJECTID ':' TYPEID ASSIGN expr
+    ;
+
+    typed_feature : OBJECTID ':' TYPEID 
+    | OBJECTID ':' TYPEID ASSIGN expr
+    ;
+
+    typed_feature_list : typed_feature 
+    | typed_feature_list ',' typed_feature
+    ;
+
+    formal_list : 
+    | formal_list ',' formal
+    | formal
+
+    formal : OBJECTID ':' TYPEID ;
+    
+    case_list : case_list case 
+    | case 
+    ;
+
+    case : OBJECTID ':' TYPEID DARROW expr ';' ;
+
+    expr_list : expr 
+    | expr_list ',' expr
+    ;
+
+    expr : OBJECTID ASSIGN expr
+    | expr '.' OBJECTID '(' expr_list ')'
+    | expr '.' '@' TYPEID '.' OBJECTID '(' expr_list ')'
+    | OBJECTID '(' expr_list ')'
+    | IF expr THEN expr ELSE expr FI
+    | WHILE expr LOOP expr POOL
+    | '{' expr ';' '}'
+    | '{' expr ';' expr '}'
+    | LET typed_feature_list IN expr
+    | CASE expr OF case_list ESAC
+    | NEW TYPEID
+    | ISVOID TYPEID
+    | expr '+' expr {;}
+    | expr '-' expr {;}
+    | expr '*' expr {;}
+    | expr '/' expr {;}
+    | '~' expr       {;}
+    | expr '<' expr
+    | expr LE expr
+    | expr '=' expr
+    | NOT expr
+    | '(' expr ')'
+    | OBJECTID
+    | INT_CONST
+    | STR_CONST
+    | BOOL_CONST
+    ;
     
     /* end of grammar */
     %%
