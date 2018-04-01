@@ -139,11 +139,12 @@
     %type <case_> case
     %type <cases> case_list
     %type <expression> expr
-    %type <expressions> expr_list
- 
+    %type <expressions> expr_list expr_block
+    %type <formals> formal_list
+    %type <formal> formal
     /* You will want to change the following line. */
-    %type <features> feature_list
-    %type <feature> feature
+    %type <features> feature_list typed_feature_list
+    %type <feature> feature typed_feature
 
     /* Precedence declarations go here. */
     
@@ -166,83 +167,180 @@
     ;
     
     class_list
-    : class			/* single class */
-    { $$ = single_Classes($1);
-    parse_results = $$; }
-    | class_list class	/* several classes */
-    { $$ = append_Classes($1,single_Classes($2)); 
-    parse_results = $$; }
+    : class { 
+        $$ = single_Classes($1);
+        parse_results = $$;
+    }
+    | class_list class { 
+        $$ = append_Classes($1,single_Classes($2)); 
+        parse_results = $$;
+    }
     ;
     
     /* If no parent is specified, the class inherits from the Object class. */
-    class	: CLASS TYPEID '{' feature_list '}' ';'
-    { $$ = class_($2,idtable.add_string("Object"),$4,
-    stringtable.add_string(curr_filename)); }
-    | CLASS TYPEID INHERITS TYPEID '{' feature_list '}' ';'
-    { $$ = class_($2,$4,$6,stringtable.add_string(curr_filename)); }
+    class	: CLASS TYPEID '{' feature_list '}' ';' { 
+        $$ = class_($2,idtable.add_string("Object"),$4,
+        stringtable.add_string(curr_filename));
+    }
+    | CLASS TYPEID INHERITS TYPEID '{' feature_list '}' ';' { 
+        $$ = class_($2,$4,$6,stringtable.add_string(curr_filename));
+    }
     ;
     
     /* Feature list may be empty, but no empty features in list. */
-    feature_list:		/* empty */
-    {  $$ = nil_Features(); }
-    | feature_list feature 
+    feature_list: {  $$ = nil_Features(); }
+    | feature_list feature {
+        $$ = append_Features($1, single_Features($2));
+    }
     ;
     
-    feature : OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}'
-    | OBJECTID ':' TYPEID
-    | OBJECTID ':' TYPEID ASSIGN expr
+    feature : OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}' {
+        $$ = method($1, $3, $6, $8);
+    }
+    | typed_feature {
+        $$ = $1;
+    }
     ;
 
-    typed_feature : OBJECTID ':' TYPEID 
-    | OBJECTID ':' TYPEID ASSIGN expr
+    typed_feature : OBJECTID ':' TYPEID {
+        $$ = attr($1, $3, no_expr());
+    } 
+    | OBJECTID ':' TYPEID ASSIGN expr {
+        $$ = attr($1, $3, $5);
+    }
     ;
 
-    typed_feature_list : typed_feature 
-    | typed_feature_list ',' typed_feature
+    typed_feature_list : typed_feature {
+        $$ = single_Features($1);
+    } 
+    | typed_feature_list ',' typed_feature {
+        $$ = append_Features($1, single_Features($3));
+    }
     ;
 
-    formal_list : 
-    | formal_list ',' formal
-    | formal
+    formal_list : {$$ = nil_Formals();}
+    | formal {
+        $$ = single_Formals($1);
+    }
+    | formal_list ',' formal {
+        $$ = append_Formals($1, single_Formals($3));
+    }
+    ;
 
-    formal : OBJECTID ':' TYPEID ;
+    formal : OBJECTID ':' TYPEID {
+        $$ = formal($1, $3);
+    }
+    ;
     
-    case_list : case_list case 
-    | case 
+    case_list : case {
+        $$ = single_Cases($1);
+    }
+    | case_list case {
+        $$ = append_Cases($1, single_Cases($2));
+    }
     ;
 
-    case : OBJECTID ':' TYPEID DARROW expr ';' ;
-
-    expr_list : expr 
-    | expr_list ',' expr
+    case : OBJECTID ':' TYPEID DARROW expr ';' {
+        $$ = branch($1, $3, $5);
+    }
     ;
 
-    expr : OBJECTID ASSIGN expr
-    | expr '.' OBJECTID '(' expr_list ')'
-    | expr '.' '@' TYPEID '.' OBJECTID '(' expr_list ')'
-    | OBJECTID '(' expr_list ')'
-    | IF expr THEN expr ELSE expr FI
-    | WHILE expr LOOP expr POOL
-    | '{' expr ';' '}'
-    | '{' expr ';' expr '}'
-    | LET typed_feature_list IN expr
-    | CASE expr OF case_list ESAC
-    | NEW TYPEID
-    | ISVOID TYPEID
-    | expr '+' expr {;}
-    | expr '-' expr {;}
-    | expr '*' expr {;}
-    | expr '/' expr {;}
-    | '~' expr       {;}
-    | expr '<' expr
-    | expr LE expr
-    | expr '=' expr
-    | NOT expr
-    | '(' expr ')'
-    | OBJECTID
-    | INT_CONST
-    | STR_CONST
-    | BOOL_CONST
+    expr_list : { $$ = nil_Expressions(); } 
+    | expr { 
+        $$ = single_Expressions($1); 
+    } 
+    | expr_list ',' expr {
+        $$ = append_Expressions($1, single_Expressions($3));
+    }
+    ;
+
+    expr_block : expr { $$ = single_Expressions($1);}
+    | expr_block ';' expr {
+        $$ = append_Expressions($1, single_Expressions($3));
+    }
+    ;
+
+    expr : OBJECTID ASSIGN expr {
+        $$ = assign($1, $3);
+    }
+    | expr '.' OBJECTID '(' expr_list ')' {
+        ;
+    }
+    | expr '.' '@' TYPEID '.' OBJECTID '(' expr_list ')' {
+        ;
+    }
+    | OBJECTID '(' expr_list ')' {
+        ;
+    }
+    | IF expr THEN expr ELSE expr FI {
+        ;
+    }
+    | WHILE expr LOOP expr POOL {
+        ;
+    }
+    | '{' expr_block '}' {
+        $$ = $2;
+    }
+    | LET typed_feature_list IN expr {
+        ;
+    }
+    | CASE expr OF case_list ESAC {
+        ;
+    }
+    | NEW TYPEID {
+        ;
+    }
+    | ISVOID TYPEID {
+        ;
+    }
+    | expr '+' expr {
+        $$ = plus($1, $3);
+    }
+    | expr '-' expr {
+        ;
+    }
+    | expr '*' expr {
+      ;
+    }
+    | expr '/' expr {
+        if ($3){
+            $$ = divide($1, $3);
+        }else{
+            // $$ = 1;
+            fprintf(stderr, "#%d: Division by zero.\n", @3);
+        }
+
+    }
+    | '~' expr {
+        ;
+    }
+    | expr '<' expr {
+        ;
+    }
+    | expr LE expr {
+        ;
+    }
+    | expr '=' expr {
+        ;
+    }
+    | NOT expr {
+        ;
+    }
+    | '(' expr ')' {
+        $$ = $2;
+    }
+    | OBJECTID {
+        ;
+    }
+    | INT_CONST {
+        $$ = int_const($1);
+    }
+    | STR_CONST {
+        $$ = string_const($1);
+    }
+    | BOOL_CONST {
+        $$ = bool_const($1);
+    }
     ;
     
     /* end of grammar */
