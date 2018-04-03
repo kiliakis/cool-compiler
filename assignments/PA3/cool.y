@@ -149,12 +149,12 @@
     /* Precedence declarations go here. */
     
     %right ASSIGN
-    %left NOT
-    %left '<' '=' LE 
+    %precedence NOT
+    %precedence '<' '=' LE 
     %left '+' '-'
     %left '*' '/'
-    %left ISVOID
-    %left '~'
+    %precedence ISVOID
+    %precedence '~'
     %left '@'
     %left '.'
     
@@ -179,8 +179,7 @@
     
     /* If no parent is specified, the class inherits from the Object class. */
     class	: CLASS TYPEID '{' feature_list '}' ';' { 
-        $$ = class_($2,idtable.add_string("Object"),$4,
-        stringtable.add_string(curr_filename));
+        $$ = class_($2,idtable.add_string("Object"),$4,stringtable.add_string(curr_filename));
     }
     | CLASS TYPEID INHERITS TYPEID '{' feature_list '}' ';' { 
         $$ = class_($2,$4,$6,stringtable.add_string(curr_filename));
@@ -189,7 +188,7 @@
     
     /* Feature list may be empty, but no empty features in list. */
     feature_list: {  $$ = nil_Features(); }
-    | feature_list feature {
+    | feature_list feature ';' {
         $$ = append_Features($1, single_Features($2));
     }
     ;
@@ -254,9 +253,12 @@
     }
     ;
 
-    expr_block : expr { $$ = single_Expressions($1);}
-    | expr_block ';' expr {
-        $$ = append_Expressions($1, single_Expressions($3));
+    expr_block : expr ';' { 
+        $$ = single_Expressions($1);
+    }
+    | expr_block expr ';' {
+        // single_Expressions($1);
+        $$ = append_Expressions($1, single_Expressions($2));
     }
     ;
 
@@ -264,73 +266,73 @@
         $$ = assign($1, $3);
     }
     | expr '.' OBJECTID '(' expr_list ')' {
-        ;
+        $$ = dispatch($1, $3, $5);
     }
     | expr '.' '@' TYPEID '.' OBJECTID '(' expr_list ')' {
-        ;
+        $$ = static_dispatch($1,$4,$6,$8);
     }
     | OBJECTID '(' expr_list ')' {
-        ;
+        // here I need the symbol for self in the first argument
+        $$ = dispatch(no_expr(),$1,$3);
     }
     | IF expr THEN expr ELSE expr FI {
-        ;
+        $$ = cond($2, $4, $6);
     }
     | WHILE expr LOOP expr POOL {
-        ;
+        $$ = loop($2, $4);
     }
     | '{' expr_block '}' {
-        $$ = $2;
+        $$ = block($2);
     }
     | LET typed_feature_list IN expr {
-        ;
+        // Need to change the typed feature list construct
     }
     | CASE expr OF case_list ESAC {
-        ;
+        $$ = typcase($2, $4);
     }
     | NEW TYPEID {
-        ;
+        $$ = new_($2);
     }
-    | ISVOID TYPEID {
-        ;
+    | ISVOID expr {
+        $$ = isvoid($2);
     }
     | expr '+' expr {
         $$ = plus($1, $3);
     }
     | expr '-' expr {
-        ;
+        $$ = sub($1, $3);
     }
     | expr '*' expr {
-      ;
+        $$ = mul($1, $3);
     }
     | expr '/' expr {
         if ($3){
             $$ = divide($1, $3);
         }else{
-            // $$ = 1;
             fprintf(stderr, "#%d: Division by zero.\n", @3);
         }
 
     }
     | '~' expr {
-        ;
+        $$ = neg($2);
     }
     | expr '<' expr {
-        ;
+        $$ = lt($1, $3);
     }
     | expr LE expr {
-        ;
+        $$ = leq($1, $3);
     }
     | expr '=' expr {
-        ;
+        $$ = eq($1, $3);
     }
     | NOT expr {
-        ;
+        $$ = comp($2);
     }
     | '(' expr ')' {
         $$ = $2;
     }
     | OBJECTID {
-        ;
+        $$ = object($1);
     }
     | INT_CONST {
         $$ = int_const($1);
