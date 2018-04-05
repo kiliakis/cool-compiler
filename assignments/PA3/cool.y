@@ -175,6 +175,9 @@
         $$ = append_Classes($1,single_Classes($2)); 
         parse_results = $$;
     }
+    | error class {
+        yyerrok;
+    }
     ;
     
     /* If no parent is specified, the class inherits from the Object class. */
@@ -184,12 +187,20 @@
     | CLASS TYPEID INHERITS TYPEID '{' feature_list '}' ';' { 
         $$ = class_($2,$4,$6,stringtable.add_string(curr_filename));
     }
+    /*
+    | CLASS error '{' feature_list '}' ';' {
+        yyerrok;
+    }
+    */
     ;
     
     /* Feature list may be empty, but no empty features in list. */
     feature_list: {  $$ = nil_Features(); }
     | feature_list feature ';' {
         $$ = append_Features($1, single_Features($2));
+    }
+    | feature_list error ';' {
+        yyerrok;
     }
     ;
     
@@ -263,6 +274,16 @@
         // single_Expressions($1);
         $$ = append_Expressions($1, single_Expressions($2));
     }
+    /*
+    | expr_block error ';' {
+        yyerrok;
+    }
+    */
+    
+    | error ';' {
+        yyerrok;
+    }
+    
     ;
     
     let_help1 : OBJECTID ':' TYPEID IN expr {
@@ -293,6 +314,9 @@
     | LET OBJECTID ':' TYPEID ASSIGN expr ',' let_help1 {
         $$ = let($2, $4, $6, $8);
     }
+    | LET error ',' let_help1 {
+        yyerrok;
+    }
     ;
 
     expr : OBJECTID ASSIGN expr {
@@ -301,8 +325,8 @@
     | expr '.' OBJECTID '(' expr_list ')' {
         $$ = dispatch($1, $3, $5);
     }
-    | expr '.' '@' TYPEID '.' OBJECTID '(' expr_list ')' {
-        $$ = static_dispatch($1,$4,$6,$8);
+    | expr '@' TYPEID '.' OBJECTID '(' expr_list ')' {
+        $$ = static_dispatch($1,$3,$5,$7);
     }
     | OBJECTID '(' expr_list ')' {
         // here I need the symbol for self in the first argument
@@ -376,6 +400,11 @@
     | BOOL_CONST {
         $$ = bool_const($1);
     }
+    /*
+    | error {
+
+    }
+    */
     ;
     
     /* end of grammar */
