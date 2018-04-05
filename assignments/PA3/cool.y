@@ -201,8 +201,10 @@
     }
     
     | feature_list OBJECTID error '}' ';' {
-        yyerrok;
+        // printf("I am here\n");
+        // yyerrok;
     }
+    
     | feature_list OBJECTID ':' error ';' {
         yyerrok;
     }
@@ -235,16 +237,6 @@
     */
     ;
     
-
-    /*
-    typed_feature_list : typed_feature {
-        $$ = single_Features($1);
-    } 
-    | typed_feature_list ',' typed_feature {
-        $$ = append_Features($1, single_Features($3));
-    }
-    ;
-    */
 
     formal_list : {$$ = nil_Formals();}
     | formal {
