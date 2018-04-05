@@ -150,7 +150,7 @@
     
     %right ASSIGN
     %precedence NOT
-    %precedence '<' '=' LE 
+    %nonassoc '<' '=' LE 
     %left '+' '-'
     %left '*' '/'
     %precedence ISVOID
