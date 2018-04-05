@@ -199,9 +199,14 @@
     | feature_list feature ';' {
         $$ = append_Features($1, single_Features($2));
     }
-    | feature_list error ';' {
+    
+    | feature_list OBJECTID error '}' ';' {
         yyerrok;
     }
+    | feature_list OBJECTID ':' error ';' {
+        yyerrok;
+    }
+    
     ;
     
     feature : OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}' {
@@ -210,6 +215,11 @@
     | typed_feature {
         $$ = $1;
     }
+    /*
+    | OBJECTID error '}' {
+        yyerrok;
+    }
+    */
     ;
 
     typed_feature : OBJECTID ':' TYPEID {
@@ -218,6 +228,11 @@
     | OBJECTID ':' TYPEID ASSIGN expr {
         $$ = attr($1, $3, $5);
     }
+    /*
+    | OBJECTID ':' error {
+        yyerrok;
+    }
+    */
     ;
     
 
@@ -279,7 +294,6 @@
         yyerrok;
     }
     */
-    
     | error ';' {
         yyerrok;
     }
