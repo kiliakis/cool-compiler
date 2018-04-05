@@ -138,12 +138,12 @@
     // %type <boolean> boolean
     %type <case_> case
     %type <cases> case_list
-    %type <expression> expr
+    %type <expression> expr let_expr let_help1
     %type <expressions> expr_list expr_block
     %type <formals> formal_list
     %type <formal> formal
     /* You will want to change the following line. */
-    %type <features> feature_list typed_feature_list
+    %type <features> feature_list
     %type <feature> feature typed_feature
 
     /* Precedence declarations go here. */
@@ -208,7 +208,9 @@
         $$ = attr($1, $3, $5);
     }
     ;
+    
 
+    /*
     typed_feature_list : typed_feature {
         $$ = single_Features($1);
     } 
@@ -216,6 +218,7 @@
         $$ = append_Features($1, single_Features($3));
     }
     ;
+    */
 
     formal_list : {$$ = nil_Formals();}
     | formal {
@@ -261,6 +264,36 @@
         $$ = append_Expressions($1, single_Expressions($2));
     }
     ;
+    
+    let_help1 : OBJECTID ':' TYPEID IN expr {
+        $$ = let($1, $3, no_expr(), $5);
+    }
+    | OBJECTID ':' TYPEID ',' let_help1 {
+        $$ = let($1, $3, no_expr(), $5);
+
+    }
+    | OBJECTID ':' TYPEID ASSIGN expr IN expr {
+        $$ = let($1, $3, $5, $7);
+
+    }
+    | OBJECTID ':' TYPEID ASSIGN expr ',' let_help1 {
+        $$ = let($1, $3, $5, $7);
+    }
+    ;
+
+    let_expr : LET OBJECTID ':' TYPEID IN expr {
+        $$ = let($2, $4, no_expr(), $6); 
+    }
+    | LET OBJECTID ':' TYPEID ASSIGN expr IN expr{
+        $$ = let($2, $4, $6, $8);
+    }
+    | LET OBJECTID ':' TYPEID ',' let_help1 {
+        $$ = let($2, $4, no_expr(), $6);
+    }
+    | LET OBJECTID ':' TYPEID ASSIGN expr ',' let_help1 {
+        $$ = let($2, $4, $6, $8);
+    }
+    ;
 
     expr : OBJECTID ASSIGN expr {
         $$ = assign($1, $3);
@@ -284,8 +317,9 @@
     | '{' expr_block '}' {
         $$ = block($2);
     }
-    | LET typed_feature_list IN expr {
+    | let_expr {
         // Need to change the typed feature list construct
+        $$ = $1;
     }
     | CASE expr OF case_list ESAC {
         $$ = typcase($2, $4);
