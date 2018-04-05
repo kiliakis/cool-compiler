@@ -306,7 +306,7 @@
     }
     | OBJECTID '(' expr_list ')' {
         // here I need the symbol for self in the first argument
-        $$ = dispatch(no_expr(),$1,$3);
+        $$ = dispatch(object(idtable.add_string("self")), $1, $3);
     }
     | IF expr THEN expr ELSE expr FI {
         $$ = cond($2, $4, $6);
@@ -318,7 +318,6 @@
         $$ = block($2);
     }
     | let_expr {
-        // Need to change the typed feature list construct
         $$ = $1;
     }
     | CASE expr OF case_list ESAC {
