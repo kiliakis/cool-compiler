@@ -5,6 +5,8 @@
 #include <stdarg.h>
 #include "semant.h"
 #include "utilities.h"
+#include <vector>
+#include <string>
 
 
 extern int semant_debug;
@@ -84,9 +86,38 @@ static void initialize_constants(void)
 
 
 ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) {
-
+    using namespace std;
     /* Fill this in */
+    vector<int> graph;
+    vector<Symbol> names;
+    vector<Symbol> inherits;
 
+    names.push_back(Object);
+    inherits.push_back(No_class);
+
+    names.push_back(Int);
+    inherits.push_back(Object);
+
+    names.push_back(Str);
+    inherits.push_back(Object);
+    
+    names.push_back(Bool);
+    inherits.push_back(Object);
+    
+    cout << "Start printing\n";
+    for(int i = classes->first(); classes->more(i); i = classes->next(i)){
+        // classes->nth(i)->dump_with_types(cout, 0);
+        Class_ curr = classes->nth(i);
+        names.push_back(curr->get_name());
+        inherits.push_back(curr->get_parent());
+
+    }
+
+    for(int i = 0; i < names.size(); i++){
+        cout << names[i] << " inherits " << inherits[i] << "\n";
+    }
+    
+    cout << "finished printing\n";
 }
 
 void ClassTable::install_basic_classes() {

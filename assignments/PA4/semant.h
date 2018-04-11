@@ -33,6 +33,8 @@ public:
   ostream& semant_error(Symbol filename, tree_node *t);
 };
 
+Symbol class__class::get_parent() { return parent; }
+Symbol class__class::get_name() { return name; }
 
 #endif
 
