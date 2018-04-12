@@ -10,6 +10,14 @@ class C inherits B {
 	};
 };
 
+class B inherits A {
+
+};
+
+Class A inherits C {
+
+};
+
 Class Main {
 	main():C {
 	  (new C).init(1,true)

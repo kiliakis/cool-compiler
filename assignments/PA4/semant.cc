@@ -7,7 +7,7 @@
 #include "utilities.h"
 #include <vector>
 #include <string>
-
+#include <algorithm>
 
 extern int semant_debug;
 extern char *curr_filename;
@@ -88,7 +88,6 @@ static void initialize_constants(void)
 ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) {
     using namespace std;
     /* Fill this in */
-    vector<int> graph;
     vector<Symbol> names;
     vector<Symbol> inherits;
 
@@ -112,11 +111,20 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
         inherits.push_back(curr->get_parent());
 
     }
+    Graph *graph = new Graph(names.size());
 
-    for(int i = 0; i < names.size(); i++){
+    for(int i = 1; i < names.size(); i++) {
+        vector<Symbol>::iterator it = find(names.begin(), names.end(), inherits[i]);
+        if(it != names.end()){
+            graph->addEdge(i, it-names.begin());
+        }else{
+            cout << "Class: " << inherits[i] << " is not defined\n";
+        }
         cout << names[i] << " inherits " << inherits[i] << "\n";
     }
-    
+    graph->dump(cout);
+    if (graph->isCyclic())
+        cout << "ERROR: The graph contains a cycle\n";
     cout << "finished printing\n";
 }
 

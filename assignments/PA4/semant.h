@@ -42,21 +42,30 @@ Symbol class__class::get_name() { return name; }
 
 class Graph {
     int V;    // No. of vertices
-    list<int> *adj;    // Pointer to an array containing adjacency lists
+    std::list<int> *adj;    // Pointer to an array containing adjacency lists
     bool isCyclicUtil(int v, bool visited[], bool *rs);  // used by isCyclic()
 public:
     Graph(int V);   // Constructor
     void addEdge(int v, int w);   // to add an edge to graph
     bool isCyclic();    // returns true if there is a cycle in this graph
+    void dump(ostream &out);
 };
  
 Graph::Graph(int V) {
     this->V = V;
-    adj = new list<int>[V];
+    adj = new std::list<int>[V];
 }
  
 void Graph::addEdge(int v, int w) {
     adj[v].push_back(w); // Add w to v’s list.
+}
+
+void Graph::dump(ostream& out) {
+    for(int i = 0; i < V; i++){
+        for (std::list<int>::iterator j = adj[i].begin(); j != adj[i].end(); ++j){
+            out << "Class: " << i << " inherits " << *j << "\n";
+        }
+    }
 }
 
 // This function is a variation of DFSUytil() in https://www.geeksforgeeks.org/archives/18212
@@ -67,7 +76,7 @@ bool Graph::isCyclicUtil(int v, bool visited[], bool *recStack) {
         recStack[v] = true;
  
         // Recur for all the vertices adjacent to this vertex
-        list<int>::iterator i;
+        std::list<int>::iterator i;
         for(i = adj[v].begin(); i != adj[v].end(); ++i) {
             if ( !visited[*i] && isCyclicUtil(*i, visited, recStack) )
                 return true;
