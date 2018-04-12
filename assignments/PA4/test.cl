@@ -14,7 +14,15 @@ class B inherits A {
 
 };
 
-Class A inherits C {
+Class A inherits B {
+
+};
+
+Class Object inherits IO {
+
+};
+
+Class IO inherits Int {
 
 };
 

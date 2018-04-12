@@ -88,6 +88,11 @@ static void initialize_constants(void)
 ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) {
     using namespace std;
     /* Fill this in */
+    vector<Symbol> noinherit;
+    noinherit.push_back(Int); noinherit.push_back(Str); noinherit.push_back(Bool);
+    vector<Symbol> noredifine;
+    noredifine.push_back(Object); noredifine.push_back(Int); noredifine.push_back(Str);
+    noredifine.push_back(Bool); noredifine.push_back(IO);
     vector<Symbol> names;
     vector<Symbol> inherits;
 
@@ -103,29 +108,44 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
     names.push_back(Bool);
     inherits.push_back(Object);
     
-    cout << "Start printing\n";
+    names.push_back(IO);
+    inherits.push_back(Object);
+
+    // Check for forbidden inheritances or redefinitions
     for(int i = classes->first(); classes->more(i); i = classes->next(i)){
         // classes->nth(i)->dump_with_types(cout, 0);
         Class_ curr = classes->nth(i);
+        if(find(noredifine.begin(), noredifine.end(), curr->get_name())!=noredifine.end()){
+            semant_error(curr) << "Redefining " << curr->get_name() << " is forbidden.\n" ;
+        }
+        if(find(noinherit.begin(), noinherit.end(), curr->get_parent())!=noinherit.end()){
+            semant_error(curr) << "Inheriting from " << curr->get_parent() << " is forbidden.\n";
+        }
         names.push_back(curr->get_name());
         inherits.push_back(curr->get_parent());
-
     }
+   
+    // Check for undefined parent classes
+    for(int i = classes->first(); classes->more(i); i = classes->next(i)){
+        Class_ curr = classes->nth(i);
+        if(find(names.begin(), names.end(), curr->get_parent())==names.end()){
+            semant_error(curr) << "Parent class " << curr->get_parent() << " is undefined\n";
+        }
+    }
+
     Graph *graph = new Graph(names.size());
 
-    for(int i = 1; i < names.size(); i++) {
+    for(unsigned i = 1; i < names.size(); i++) {
         vector<Symbol>::iterator it = find(names.begin(), names.end(), inherits[i]);
         if(it != names.end()){
             graph->addEdge(i, it-names.begin());
-        }else{
-            cout << "Class: " << inherits[i] << " is not defined\n";
         }
-        cout << names[i] << " inherits " << inherits[i] << "\n";
+        // cout << names[i] << " inherits " << inherits[i] << "\n";
     }
-    graph->dump(cout);
-    if (graph->isCyclic())
-        cout << "ERROR: The graph contains a cycle\n";
-    cout << "finished printing\n";
+    // graph->dump(cout);
+    if (graph->isCyclic()){
+        semant_error() << "ERROR: Cyclic inheritance detected.\n";
+    }
 }
 
 void ClassTable::install_basic_classes() {
@@ -257,7 +277,7 @@ ostream& ClassTable::semant_error(Symbol filename, tree_node *t)
 
 ostream& ClassTable::semant_error()                  
 {                                                 
-    semant_errors++;                            
+    semant_errors++;
     return error_stream;
 } 
 
@@ -286,8 +306,8 @@ void program_class::semant()
     /* some semantic analysis code may go here */
 
     if (classtable->errors()) {
-	cerr << "Compilation halted due to static semantic errors." << endl;
-	exit(1);
+	    cerr << "Compilation halted due to static semantic errors." << endl;
+	    exit(1);
     }
 }
 
