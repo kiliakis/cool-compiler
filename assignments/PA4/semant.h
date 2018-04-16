@@ -8,12 +8,26 @@
 #include "symtab.h"
 #include "list.h"
 #include <list>
+#include <vector>
 
 #define TRUE 1
 #define FALSE 0
 
 class ClassTable;
 typedef ClassTable *ClassTableP;
+
+struct classNode {
+    Symbol name;
+    Symbol inherits;
+    Class_ body;
+    classNode(Symbol n, Symbol i, Class_ b) : name(n), inherits(i), body(b){};
+    bool operator==(const classNode & obj2) const {
+        if(name == obj2.name)
+            return true;
+        else
+            return false;
+    }
+};
 
 // This is a structure that may be used to contain the semantic
 // information such as the inheritance graph.  You may use it or not as
@@ -25,6 +39,7 @@ private:
   int semant_errors;
   void install_basic_classes();
   ostream& error_stream;
+  std::vector<classNode> classTable;
 
 public:
   ClassTable(Classes);

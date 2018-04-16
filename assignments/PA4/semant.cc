@@ -85,8 +85,9 @@ static void initialize_constants(void)
 
 
 
+using namespace std;
+
 ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) {
-    using namespace std;
     /* Fill this in */
     vector<Symbol> noinherit;
     noinherit.push_back(Int); noinherit.push_back(Str); noinherit.push_back(Bool);
@@ -95,6 +96,7 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
     noredifine.push_back(Bool); noredifine.push_back(IO);
     vector<Symbol> names;
     vector<Symbol> inherits;
+    
 
     names.push_back(Object);
     inherits.push_back(No_class);
@@ -123,6 +125,8 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
         }
         names.push_back(curr->get_name());
         inherits.push_back(curr->get_parent());
+        classNode node = classNode(curr->get_name(), curr->get_parent(), curr);
+        classTable.push_back(node);
     }
    
     // Check for undefined parent classes
@@ -132,7 +136,8 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
             semant_error(curr) << "Parent class " << curr->get_parent() << " is undefined\n";
         }
     }
-
+    
+    // Check for cycles in the inheritance graph 
     Graph *graph = new Graph(names.size());
 
     for(unsigned i = 1; i < names.size(); i++) {
@@ -146,7 +151,13 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
     if (graph->isCyclic()){
         semant_error() << "ERROR: Cyclic inheritance detected.\n";
     }
+
+    // Check for main class
+    if(find(names.begin(), names.end(), Main)==names.end()){
+        semant_error() << "ERROR: Main function not defined.\n";
+    }
 }
+
 
 void ClassTable::install_basic_classes() {
 
@@ -302,9 +313,9 @@ void program_class::semant()
 
     /* ClassTable constructor may do some semantic analysis */
     ClassTable *classtable = new ClassTable(classes);
-
+    
     /* some semantic analysis code may go here */
-
+    
     if (classtable->errors()) {
 	    cerr << "Compilation halted due to static semantic errors." << endl;
 	    exit(1);
